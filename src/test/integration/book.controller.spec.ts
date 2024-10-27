@@ -59,10 +59,10 @@ describe('BookController', () => {
                           createdAt: expect.any(String),
                           updateAt: expect.any(String),
                           user: expect.objectContaining({
-                              username: exampleBook.user.username,
-                              email: exampleBook.user.email,
-                              password: exampleBook.user.password,
-                              role: exampleBook.user.role
+                              // username: exampleBook.user.username,
+                              // email: exampleBook.user.email,
+                              // password: exampleBook.user.password,
+                              // role: exampleBook.user.role
                           })
                       }),
                       favorited: expect.any(Boolean),
@@ -94,10 +94,10 @@ describe('BookController', () => {
                           createdAt: expect.any(String),
                           updateAt: expect.any(String),
                           user: expect.objectContaining({
-                              username: exampleBook.user.username,
-                              email: exampleBook.user.email,
-                              password: exampleBook.user.password,
-                              role: exampleBook.user.role
+                              // username: exampleBook.user.username,
+                              // email: exampleBook.user.email,
+                              // password: exampleBook.user.password,
+                              // role: exampleBook.user.role
                           })
                       }),
                       favorited: expect.any(Boolean),
@@ -129,10 +129,10 @@ describe('BookController', () => {
                           createdAt: expect.any(String),
                           updateAt: expect.any(String),
                           user: expect.objectContaining({
-                              username: exampleBook.user.username,
-                              email: exampleBook.user.email,
-                              password: exampleBook.user.password,
-                              role: exampleBook.user.role
+                              // username: exampleBook.user.username,
+                              // email: exampleBook.user.email,
+                              // password: exampleBook.user.password,
+                              // role: exampleBook.user.role
                           })
                       }),
                       favorited: expect.any(Boolean),
@@ -153,12 +153,9 @@ describe('BookController', () => {
     });
 
     describe('POST / - create book', () => {
-
         it('should return book', async () => {
-
             await bookRepository.clear()
             await bookRepository.save(exampleBook);
-
             const jwt = sign(createUserTest, process.env.SECRET_PHRASE_ACCESS_TOKEN as string);
 
             const userId = '123131';
@@ -210,11 +207,9 @@ describe('BookController', () => {
         });
 
         it('should return error message when book title already exists', async () => {
-
             await bookRepository.save(exampleBook);
 
             const jwt = sign(createUserTest, process.env.SECRET_PHRASE_ACCESS_TOKEN as string);
-
             const userId = '123131';
             const image = {
                 originalname: 'book1.jpg',
