@@ -11,8 +11,10 @@ describe('BookController', () => {
     beforeAll(async () => {
         const app = express();
         server = app;
-        // bookRepository.clear()
-        // const jwt = sign(createUserTest, process.env.SECRET_PHRASE_ACCESS_TOKEN as string)
+    });
+
+    afterAll(async () => {
+        await clientRedis.disconnect();
     });
 
     describe('GET / - Get books on the main page', () => {
