@@ -1,7 +1,13 @@
-import { bookRepository, userRepository } from '../../utils/initializeRepositories';
+import {
+    authorRepository,
+    bookRepository,
+    categoryRepository, genreRepository,
+    languageRepository, publisherRepository,
+    userRepository,
+} from '../../utils/initializeRepositories';
 import { createUserTest, exampleBook } from '../utils';
 import express, { Express } from 'express';
-import { sign } from 'jsonwebtoken';
+import jwt, { sign } from 'jsonwebtoken';
 import request from 'supertest';
 import { clientRedis } from '../../utils/clientRedis';
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
@@ -43,15 +49,20 @@ describe('BookController', () => {
         it('should return books for the main page when user is authenticated', async () => {
             const user = await userRepository.save(createUserTest);
             exampleBook.user = user;
+            await languageRepository.save({ id: 1, name: 'TestEnglish' });
+            await categoryRepository.save({ id: 2, name: 'TestMovie' });
+            await publisherRepository.save({ id: 3, name: 'TestPublisher' });
+            await genreRepository.save({ id: 4, name: 'TestGenre' });
+            await authorRepository.save([{ id: 5, fullName: 'TestAuthor' }]);
             await bookRepository.save(exampleBook);
 
             // token for test user
-            const jwt = sign(createUserTest, process.env.SECRET_PHRASE_ACCESS_TOKEN as string);
+            const token = jwt.sign(createUserTest, 'some_secret_key');
 
             // request to server
             const response = await request(server)
               .get('/books/')
-              .set('Authorization', `Bearer ${jwt}`);
+              .set('Authorization', `Bearer ${token}`);
 
             // expect
             expect(response.status).toBe(200);
@@ -76,7 +87,7 @@ describe('BookController', () => {
                           publicationYear: exampleBook.publicationYear,
                           publisher: expect.objectContaining({ id: exampleBook.publisher.id, name: exampleBook.publisher.name }),
                           authors: expect.arrayContaining([
-                              expect.objectContaining({ id: exampleBook.authors[0].id }),
+                              expect.objectContaining({ id: exampleBook.authors[0].id, fullName: exampleBook.authors[0].fullName }),
                           ]),
                           availableBooks: exampleBook.availableBooks,
                           genre: expect.objectContaining({ id: exampleBook.genre.id, name: exampleBook.genre.name }),
@@ -111,7 +122,7 @@ describe('BookController', () => {
                           publicationYear: exampleBook.publicationYear,
                           publisher: expect.objectContaining({ id: exampleBook.publisher.id, name: exampleBook.publisher.name }),
                           authors: expect.arrayContaining([
-                              expect.objectContaining({ id: exampleBook.authors[0].id }),
+                              expect.objectContaining({ id: exampleBook.authors[0].id, fullName: exampleBook.authors[0].fullName }),
                           ]),
                           availableBooks: exampleBook.availableBooks,
                           genre: expect.objectContaining({ id: exampleBook.genre.id, name: exampleBook.genre.name }),
@@ -146,7 +157,7 @@ describe('BookController', () => {
                           publicationYear: exampleBook.publicationYear,
                           publisher: expect.objectContaining({ id: exampleBook.publisher.id, name: exampleBook.publisher.name }),
                           authors: expect.arrayContaining([
-                              expect.objectContaining({ id: exampleBook.authors[0].id }),
+                              expect.objectContaining({ id: exampleBook.authors[0].id, fullName: exampleBook.authors[0].fullName }),
                           ]),
                           availableBooks: exampleBook.availableBooks,
                           genre: expect.objectContaining({ id: exampleBook.genre.id, name: exampleBook.genre.name }),
@@ -214,7 +225,7 @@ describe('BookController', () => {
                 publicationYear: exampleBook.publicationYear,
                 publisher: expect.objectContaining({ id: exampleBook.publisher.id, name: exampleBook.publisher.name }),
                 authors: expect.arrayContaining([
-                    expect.objectContaining({ id: exampleBook.authors[0].id }),
+                    expect.objectContaining({ id: exampleBook.authors[0].id, fullName: exampleBook.authors[0].fullName }),
                 ]),
                 availableBooks: exampleBook.availableBooks,
                 genre: expect.objectContaining({ id: exampleBook.genre.id, name: exampleBook.genre.name }),
