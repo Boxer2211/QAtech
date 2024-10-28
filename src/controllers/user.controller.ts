@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from 'express';
 import { UserService } from '../services/user.service.js';
 import { ExpressRequest } from '../interfaces/expressRequest.interface';
 import { WinstonLoggerService } from '../logs/logger.js';
-import { exceptionType } from '../utils/exceptionType.js';
+import { exceptionType } from '../utils/exceptionType';
 
 export class UserController {
   constructor(

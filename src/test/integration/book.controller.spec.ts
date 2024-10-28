@@ -49,22 +49,21 @@ describe('BookController', () => {
         it('should return books for the main page when user is authenticated', async () => {
             const user = await userRepository.save(createUserTest);
             exampleBook.user = user;
-            await languageRepository.save({ id: 1, name: 'TestEnglish' });
-            await categoryRepository.save({ id: 2, name: 'TestMovie' });
-            await publisherRepository.save({ id: 3, name: 'TestPublisher' });
-            await genreRepository.save({ id: 4, name: 'TestGenre' });
-            await authorRepository.save([{ id: 5, fullName: 'TestAuthor' }]);
+            await languageRepository.save({ id: 1, name: 'Ukrainian' });
+            await categoryRepository.save({ id: 1, name: 'Ukrainian' });
+            await publisherRepository.save({ id: 1, name: 'MGT' });
+            await genreRepository.save({ id: 1, name: 'Fantasy' });
+            await authorRepository.save([{ id: 1, fullName: 'Maus Pol' }]);
             await bookRepository.save(exampleBook);
 
             // token for test user
-            const token = jwt.sign(createUserTest, 'some_secret_key');
+            const token = jwt.sign(createUserTest, 'secret_key');
 
             // request to server
             const response = await request(server)
               .get('/books/')
               .set('Authorization', `Bearer ${token}`);
 
-            // expect
             expect(response.status).toBe(200);
             expect(response.body).toHaveProperty('newBooks');
             expect(response.body).toHaveProperty('salesBooks');
@@ -189,7 +188,12 @@ describe('BookController', () => {
 
     describe('POST / - create book', () => {
         it('should return book', async () => {
-            await bookRepository.clear()
+
+            await languageRepository.save({ id: 1, name: 'Ukrainian' });
+            await categoryRepository.save({ id: 1, name: 'Ukrainian' });
+            await publisherRepository.save({ id: 1, name: 'MGT' });
+            await genreRepository.save({ id: 1, name: 'Fantasy' });
+            await authorRepository.save([{ id: 1, fullName: 'Maus Pol' }]);
             await bookRepository.save(exampleBook);
             const jwt = sign(createUserTest, process.env.SECRET_PHRASE_ACCESS_TOKEN as string);
 
@@ -205,10 +209,8 @@ describe('BookController', () => {
               .post('/books/create')
               .set('Authorization', `Bearer ${jwt}`)
               .attach('file', image.buffer, image.originalname)
-              .send({
-                  exampleBook,
-                  userId,
-              })
+              .field('exampleBook', JSON.stringify(exampleBook))
+              .field('userId', userId)
               .expect(201);
 
             expect(response.body).toEqual(expect.objectContaining({
@@ -257,10 +259,8 @@ describe('BookController', () => {
               .post('/books/create')
               .set('Authorization', `Bearer ${jwt}`)
               .attach('file', image.buffer, image.originalname)
-              .send({
-                  exampleBook,
-                  userId,
-              })
+              .field('exampleBook', JSON.stringify(exampleBook))
+              .field('userId', userId)
               .expect(403);
 
             expect(response.body).toHaveProperty('message', 'Book title already exists, please select another one');
