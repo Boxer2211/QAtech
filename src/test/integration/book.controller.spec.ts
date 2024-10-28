@@ -4,13 +4,35 @@ import express, { Express } from 'express';
 import { sign } from 'jsonwebtoken';
 import request from 'supertest';
 import { clientRedis } from '../../utils/clientRedis';
+import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { dataSource } from '../../configs/orm.config';
 
 describe('BookController', () => {
     let server: Express;
+    let container: StartedPostgreSqlContainer;
 
     beforeAll(async () => {
+        jest.setTimeout(15000)
+        const postgresContainer = new PostgreSqlContainer()
+          .withDatabase('testdb')
+          .withUsername('testuser')
+          .withPassword('testpass');
+
+        container = await postgresContainer.start();
+
         const app = express();
         server = app;
+
+        await dataSource.setOptions({
+            type: 'postgres',
+            host: container.getHost(),
+            port: container.getPort(),
+            username: container.getUsername(),
+            password: container.getPassword(),
+            database: container.getDatabase(),
+            synchronize: true,
+            logging: false
+        }).initialize();
     });
 
     afterAll(async () => {
@@ -62,7 +84,7 @@ describe('BookController', () => {
                           updateAt: expect.any(String),
                           user: expect.objectContaining({
                               // username: exampleBook.user.username,
-                              // email: exampleBook.user.email,
+                              email: expect.any(String),
                               // password: exampleBook.user.password,
                               // role: exampleBook.user.role
                           })
@@ -97,7 +119,7 @@ describe('BookController', () => {
                           updateAt: expect.any(String),
                           user: expect.objectContaining({
                               // username: exampleBook.user.username,
-                              // email: exampleBook.user.email,
+                              email: expect.any(String),
                               // password: exampleBook.user.password,
                               // role: exampleBook.user.role
                           })
@@ -132,7 +154,7 @@ describe('BookController', () => {
                           updateAt: expect.any(String),
                           user: expect.objectContaining({
                               // username: exampleBook.user.username,
-                              // email: exampleBook.user.email,
+                              email: expect.any(String),
                               // password: exampleBook.user.password,
                               // role: exampleBook.user.role
                           })
