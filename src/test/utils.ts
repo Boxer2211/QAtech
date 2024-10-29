@@ -7,7 +7,7 @@ export const createUserAdminTest = {
 
 export const createUserTest = {
     username: 'Slava',
-    email: process.env.TEST_EMAIL || 'user@gmai.com',
+    email: process.env.TEST_EMAIL,
     password: '2',
     role: 'user',
 };

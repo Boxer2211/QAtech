@@ -5,7 +5,7 @@ import {
     languageRepository, publisherRepository,
     userRepository,
 } from '../../utils/initializeRepositories';
-import { createUserTest, exampleBook } from '../utils';
+import { createUserAdminTest, createUserTest, exampleBook } from '../utils';
 import express, { Express } from 'express';
 import jwt, { sign } from 'jsonwebtoken';
 import request from 'supertest';
@@ -19,7 +19,35 @@ describe('BookController', () => {
     let container: StartedPostgreSqlContainer;
 
     beforeAll(async () => {
-        jest.setTimeout(15000)
+        jest.mock('aws-sdk', () => {
+            const mS3 = {
+                upload: jest.fn().mockReturnValue({
+                    promise: jest.fn().mockResolvedValue({ Location: 'mocked_image_link' }),
+                }),
+            };
+            return {
+                S3: jest.fn(() => mS3),
+            };
+        });
+
+        // jest.resetModules();
+        // jest.mock('aws-sdk', () => {
+        //     const mS3 = {
+        //         upload: jest.fn().mockReturnValue({
+        //             promise: jest.fn().mockResolvedValue({ Location: 'mocked_image_link' }),
+        //         }),
+        //         getObject: jest.fn().mockReturnValue({
+        //             promise: jest.fn().mockResolvedValue({ Body: 'mocked_file_content' }),
+        //         }),
+        //     };
+        //     return { S3: jest.fn(() => ({
+        //             ...mS3,
+        //             config: { region: 'us-east-1' }
+        //         })) };
+        // });
+        // jest.mock('../../services/s3Service', () => ({
+        //     uploadImage: jest.fn(() => Promise.resolve('mocked_image_link')),
+        // }));
         const postgresContainer = new PostgreSqlContainer()
           .withDatabase('testdb')
           .withUsername('testuser')
@@ -59,7 +87,7 @@ describe('BookController', () => {
             await bookRepository.save(exampleBook);
 
             // token for test user
-            const token = jwt.sign(createUserTest, 'secret_key');
+            const token = jwt.sign(createUserTest, process.env.SECRET_PHRASE_ACCESS_TOKEN);
 
             // request to server
             const response = await request(server)
@@ -122,28 +150,51 @@ describe('BookController', () => {
 
     describe('POST / - create book', () => {
         it('should return book', async () => {
-            await languageRepository.save({ id: 1, name: 'Ukrainian' });
-            await categoryRepository.save({ id: 1, name: 'Ukrainian' });
-            await publisherRepository.save({ id: 1, name: 'MGT' });
-            await genreRepository.save({ id: 1, name: 'Fantasy' });
-            await authorRepository.save([{ id: 1, fullName: 'Maus Pol' }]);
-            await bookRepository.save(exampleBook);
-            const jwt = sign(createUserTest, process.env.SECRET_PHRASE_ACCESS_TOKEN as string);
 
-            const userId = '123131';
-            const image = {
-                originalname: 'book1.jpg',
-                buffer: Buffer.from('image data'),
-                mimetype: 'image/jpeg',
-                size: 123,
+            const createMockImageBuffer = (width, height, color) => {
+                const buffer = Buffer.alloc(width * height * 4);
+                const rgba = color === 'white' ? [255, 255, 255, 255] : [0, 0, 0, 255]; // RGBA
+                for (let i = 0; i < buffer.length; i += 4) {
+                    buffer.writeUInt8(rgba[0], i);
+                    buffer.writeUInt8(rgba[1], i + 1);
+                    buffer.writeUInt8(rgba[2], i + 2);
+                    buffer.writeUInt8(rgba[3], i + 3);
+                }
+                return buffer;
             };
+
+            const imageBuffer = createMockImageBuffer(1, 1, 'white'); // 1x1 біле зображення
+            const image = {
+                originalname: 'mock_image.png',
+                buffer: imageBuffer,
+                mimetype: 'image/png',
+                size: imageBuffer.length,
+            };
+
+            await bookRepository.delete({})
+            await userRepository.delete({})
+            const user = await userRepository.save(createUserAdminTest);
+            exampleBook.user = user;
+            // await bookRepository.save(exampleBook);
+            const token = jwt.sign(createUserAdminTest, process.env.SECRET_PHRASE_ACCESS_TOKEN as string);
 
             const response = await request(server)
               .post('/books/create')
-              .set('Authorization', `Bearer ${jwt}`)
-              .attach('file', image.buffer, image.originalname)
-              .field('exampleBook', JSON.stringify(exampleBook))
-              .field('userId', userId)
+              .set('Authorization', `Bearer ${token}`)
+              .attach('image', imageBuffer, image.originalname)
+              .field('title', exampleBook.title)
+              .field('pagesQuantity', exampleBook.pagesQuantity)
+              .field('summary', exampleBook.summary)
+              .field('originalPrice', exampleBook.originalPrice)
+              .field('discountedPrice', exampleBook.discountedPrice)
+              .field('language', JSON.stringify(exampleBook.language))
+              .field('isbn', exampleBook.isbn)
+              .field('category', JSON.stringify(exampleBook.category))
+              .field('publicationYear', exampleBook.publicationYear)
+              .field('publisher', JSON.stringify(exampleBook.publisher))
+              .field('authors', JSON.stringify(exampleBook.authors))
+              .field('availableBooks', exampleBook.availableBooks)
+              .field('genre', JSON.stringify(exampleBook.genre))
               .expect(201);
 
             expect(response.body).toEqual(expect.objectContaining({
@@ -167,7 +218,7 @@ describe('BookController', () => {
                 createdAt: expect.any(String),
                 updateAt: expect.any(String),
                 user: expect.objectContaining({
-                    id: userId,
+                    id: expect.any(String),
                     username: expect.any(String),
                     email: expect.any(String),
                     password: expect.any(String),
@@ -177,10 +228,16 @@ describe('BookController', () => {
         });
 
         it('should return error message when book title already exists', async () => {
+            const user = await userRepository.save(createUserAdminTest);
+            exampleBook.user = user;
+            await languageRepository.save({ id: 1, name: 'Ukrainian' });
+            await categoryRepository.save({ id: 1, name: 'Ukrainian' });
+            await publisherRepository.save({ id: 1, name: 'MGT' });
+            await genreRepository.save({ id: 1, name: 'Fantasy' });
+            await authorRepository.save([{ id: 1, fullName: 'Maus Pol' }]);
             await bookRepository.save(exampleBook);
+            const token = jwt.sign(createUserAdminTest, process.env.SECRET_PHRASE_ACCESS_TOKEN as string);
 
-            const jwt = sign(createUserTest, process.env.SECRET_PHRASE_ACCESS_TOKEN as string);
-            const userId = '123131';
             const image = {
                 originalname: 'book1.jpg',
                 buffer: Buffer.from('image data'),
@@ -190,10 +247,10 @@ describe('BookController', () => {
 
             const response = await request(server)
               .post('/books/create')
-              .set('Authorization', `Bearer ${jwt}`)
+              .set('Authorization', `Bearer ${token}`)
               .attach('file', image.buffer, image.originalname)
               .field('exampleBook', JSON.stringify(exampleBook))
-              .field('userId', userId)
+              .field('userId', user.id)
               .expect(403);
 
             expect(response.body).toHaveProperty('message', 'Book title already exists, please select another one');

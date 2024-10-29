@@ -23,15 +23,15 @@ const router = Router();
 const userService = new UserService(userRepository, refreshSessionRepository, resetPasswordRepository,notificationService);
 const userController = new UserController(userService,winstonLoggerService);
 
-// passport.initialize();
-// passport.use(new GoogleStrategy(oauthConfig, async (
-//     accessToken: string,
-//     refreshToken: string,
-//     profile: any,
-//     done: VerifyCallback) =>{
-//         const user = {accessToken}
-//         done(null, user);
-//     }));
+passport.initialize();
+passport.use(new GoogleStrategy(oauthConfig, async (
+    accessToken: string,
+    refreshToken: string,
+    profile: any,
+    done: VerifyCallback) =>{
+        const user = {accessToken}
+        done(null, user);
+    }));
 
 router.post('/register', validation(CreateUserDto), userController.createUser.bind(userController));
 router.post('/admin/login', validation(LoginUserDto), userController.loginUser.bind(userController));

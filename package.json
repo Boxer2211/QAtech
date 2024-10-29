@@ -4,6 +4,7 @@
     "@aws-sdk/client-s3": "^3.609.0",
     "@aws-sdk/lib-storage": "^3.609.0",
     "@nestjs/mapped-types": "^2.0.5",
+    "aws-sdk": "^2.1691.0",
     "aws-sdk-client-mock": "^4.0.1",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
